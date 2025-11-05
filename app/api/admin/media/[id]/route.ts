@@ -24,16 +24,13 @@ async function requireAdmin() {
 }
 
 // ✅ DELETE /api/admin/media/[id]
-export async function DELETE(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(request: NextRequest, context: { params: { id: string } }) {
   try {
-    const { id } = await context.params;
     const session = await requireAdmin();
     if (!session)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+    const { id } = context.params;
     if (!id || !ObjectId.isValid(id)) {
       return NextResponse.json({ error: "Invalid id" }, { status: 400 });
     }
@@ -57,16 +54,13 @@ export async function DELETE(
 }
 
 // ✅ PATCH /api/admin/media/[id]
-export async function PATCH(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
+export async function PATCH(request: NextRequest, context: { params: { id: string } }) {
   try {
-    const { id } = await context.params;
     const session = await requireAdmin();
     if (!session)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+    const { id } = context.params;
     if (!id || !ObjectId.isValid(id)) {
       return NextResponse.json({ error: "Invalid id" }, { status: 400 });
     }
