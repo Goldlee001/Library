@@ -23,10 +23,8 @@ async function requireAdmin() {
   return session;
 }
 
-export async function DELETE(
-  request: NextRequest,
-  context: { params: { id: string } }
-) {
+// ✅ DELETE /api/admin/media/[id]
+export async function DELETE(request: NextRequest, context: { params: { id: string } }) {
   try {
     const session = await requireAdmin();
     if (!session)
@@ -55,10 +53,8 @@ export async function DELETE(
   }
 }
 
-export async function PATCH(
-  request: NextRequest,
-  context: { params: { id: string } }
-) {
+// ✅ PATCH /api/admin/media/[id]
+export async function PATCH(request: NextRequest, context: { params: { id: string } }) {
   try {
     const session = await requireAdmin();
     if (!session)
@@ -87,7 +83,6 @@ export async function PATCH(
     const client = await clientPromise;
     const db: Db = client.db("library");
 
-    // ✅ Type-safe for MongoDB v6+
     const result = await db
       .collection<Media>("media")
       .findOneAndUpdate(
@@ -96,7 +91,6 @@ export async function PATCH(
         { returnDocument: "after" }
       );
 
-    // ✅ Fix: explicitly narrow result to expected shape
     const updated = (result && "value" in result ? result.value : null) as Media | null;
 
     if (!updated) {
