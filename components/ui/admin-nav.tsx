@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Files } from "lucide-react"
 import { LayoutGrid, Wallet, Settings, User, Upload } from "lucide-react";
 
 export default function UserNav() {
@@ -10,7 +11,7 @@ export default function UserNav() {
   const navItems = [
     { name: "ALL USER", href: "/admin-dashboard/user-management", icon: User },
     { name: "SETTINGS", href: "/admin-dashboard/settings", icon: Settings, },
-    { name: "UPLOAD", href: "/admin-dashboard/upload", icon: Upload, },
+    { name: "ALL CONTENT", href: "/admin-dashboard/all-content", icon: Files, },
   ];
 
   const isActive = (href: string) =>
