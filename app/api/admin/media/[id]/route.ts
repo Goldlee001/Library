@@ -24,13 +24,17 @@ async function requireAdmin() {
 }
 
 // ✅ DELETE /api/admin/media/[id]
-export async function DELETE(request: NextRequest, context: { params: { id: string } }) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> } // <-- required by Next.js 15
+) {
+  const { id } = await params;
+
   try {
     const session = await requireAdmin();
     if (!session)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { id } = context.params;
     if (!id || !ObjectId.isValid(id)) {
       return NextResponse.json({ error: "Invalid id" }, { status: 400 });
     }
@@ -54,13 +58,17 @@ export async function DELETE(request: NextRequest, context: { params: { id: stri
 }
 
 // ✅ PATCH /api/admin/media/[id]
-export async function PATCH(request: NextRequest, context: { params: { id: string } }) {
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> } // <-- same change here
+) {
+  const { id } = await params;
+
   try {
     const session = await requireAdmin();
     if (!session)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { id } = context.params;
     if (!id || !ObjectId.isValid(id)) {
       return NextResponse.json({ error: "Invalid id" }, { status: 400 });
     }
@@ -91,7 +99,8 @@ export async function PATCH(request: NextRequest, context: { params: { id: strin
         { returnDocument: "after" }
       );
 
-    const updated = (result && "value" in result ? result.value : null) as Media | null;
+    const updated =
+      (result && "value" in result ? result.value : null) as Media | null;
 
     if (!updated) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
