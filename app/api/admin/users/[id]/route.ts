@@ -1,13 +1,13 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
 
 export async function PATCH(
-  req: Request,
+  req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const id = params.id;
+    const { id } = params;
     const body = await req.json().catch(() => ({}));
     const status = body?.status;
 
@@ -19,7 +19,11 @@ export async function PATCH(
     const db = client.db();
     const col = db.collection("users");
 
-    const filter = ObjectId.isValid(id) ? { _id: new ObjectId(id) } : { _id: id };
+    // ✅ Force filter type to a broad Record<string, unknown>
+    const filter: Record<string, unknown> = ObjectId.isValid(id)
+      ? { _id: new ObjectId(id) }
+      : { _id: id };
+
     const res = await col.updateOne(filter, { $set: { status } });
 
     if (res.matchedCount === 0) {
@@ -28,21 +32,28 @@ export async function PATCH(
 
     return NextResponse.json({ ok: true }, { status: 200 });
   } catch (e: any) {
-    return NextResponse.json({ error: e?.message || "Failed to update user" }, { status: 500 });
+    return NextResponse.json(
+      { error: e?.message || "Failed to update user" },
+      { status: 500 }
+    );
   }
 }
 
 export async function DELETE(
-  _req: Request,
+  _req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const id = params.id;
+    const { id } = params;
     const client = await clientPromise;
     const db = client.db();
     const col = db.collection("users");
 
-    const filter = ObjectId.isValid(id) ? { _id: new ObjectId(id) } : { _id: id };
+    // ✅ Same fix applied here
+    const filter: Record<string, unknown> = ObjectId.isValid(id)
+      ? { _id: new ObjectId(id) }
+      : { _id: id };
+
     const res = await col.deleteOne(filter);
 
     if (res.deletedCount === 0) {
@@ -51,6 +62,9 @@ export async function DELETE(
 
     return NextResponse.json({ ok: true }, { status: 200 });
   } catch (e: any) {
-    return NextResponse.json({ error: e?.message || "Failed to delete user" }, { status: 500 });
+    return NextResponse.json(
+      { error: e?.message || "Failed to delete user" },
+      { status: 500 }
+    );
   }
 }
