@@ -2,12 +2,9 @@ import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
 
-export async function PUT(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
+export async function PUT(req: Request, context: any) {
   try {
-    const id = params.id;
+    const id = (context?.params as { id: string })?.id;
     const body = await req.json().catch(() => ({}));
     const role = body?.role;
 
@@ -17,9 +14,9 @@ export async function PUT(
 
     const client = await clientPromise;
     const db = client.db();
-    const col = db.collection("users");
+    const col = db.collection<any>("users");
 
-    const filter = ObjectId.isValid(id) ? { _id: new ObjectId(id) } : { _id: id };
+    const filter: any = ObjectId.isValid(id) ? { _id: new ObjectId(id) } : { _id: id };
     const res = await col.updateOne(filter, { $set: { role } });
 
     if (res.matchedCount === 0) {
