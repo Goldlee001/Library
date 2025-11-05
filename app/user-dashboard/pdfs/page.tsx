@@ -13,8 +13,8 @@ interface PDF { _id?: string; title: string; src: string }
 // ---------- MAIN COMPONENT ----------
 export default function DashboardPage() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [likes, setLikes] = useState<{ [key: number]: number }>({});
-  const [userLiked, setUserLiked] = useState<{ [key: number]: boolean }>({});
+  const [likes, setLikes] = useState<Record<string, number>>({});
+  const [userLiked, setUserLiked] = useState<Record<string, boolean>>({});
   const [visiblePDFs, setVisiblePDFs] = useState(4);
   const [pdfs, setPdfs] = useState<PDF[]>([]);
   const [loading, setLoading] = useState(true);
