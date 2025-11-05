@@ -14,8 +14,8 @@ interface ImageItem { _id?: string; title: string; src: string }
 export default function DashboardPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [likes, setLikes] = useState<{ [key: number]: number }>({});
-  const [userLiked, setUserLiked] = useState<{ [key: number]: boolean }>({});
+  const [likes, setLikes] = useState<Record<string, number>>({});
+  const [userLiked, setUserLiked] = useState<Record<string, boolean>>({});
   const [visibleImages, setVisibleImages] = useState(4);
   const [images, setImages] = useState<ImageItem[]>([]);
   const [loading, setLoading] = useState(true);
