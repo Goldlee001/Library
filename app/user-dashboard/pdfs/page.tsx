@@ -28,6 +28,20 @@ export default function DashboardPage() {
         const data = await res.json();
         const items: PDF[] = (data?.items || []).map((m: any, i: number) => ({ _id: m._id || String(i), title: m.title || "Untitled", src: m.src }));
         setPdfs(items);
+
+        const ids = items.map((it) => it._id).filter(Boolean) as string[];
+        if (ids.length) {
+          const likeRes = await fetch("/api/likes/bulk", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ mediaIds: ids }),
+          });
+          if (likeRes.ok) {
+            const likeData = await likeRes.json();
+            setLikes(likeData.counts || {});
+            setUserLiked(likeData.liked || {});
+          }
+        }
       } catch (e: any) {
         setError(e?.message || "Failed to load");
       } finally {
@@ -38,13 +52,24 @@ export default function DashboardPage() {
   }, []);
 
   // ---------- LIKE TOGGLE ----------
-  const toggleLike = (id: string) => {
-    const isLiked = userLiked[id] || false;
-    setLikes((prev) => ({
-      ...prev,
-      [id]: isLiked ? Math.max((prev[id] || 1) - 1, 0) : (prev[id] || 0) + 1,
-    }));
+  const toggleLike = async (id: string) => {
+    const isLiked = !!userLiked[id];
+    setLikes((prev) => ({ ...prev, [id]: isLiked ? Math.max((prev[id] || 1) - 1, 0) : (prev[id] || 0) + 1 }));
     setUserLiked((prev) => ({ ...prev, [id]: !isLiked }));
+    try {
+      const res = await fetch("/api/likes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mediaId: id, action: "toggle" }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      setLikes((prev) => ({ ...prev, [id]: data.count as number }));
+      setUserLiked((prev) => ({ ...prev, [id]: !!data.liked }));
+    } catch (e) {
+      setLikes((prev) => ({ ...prev, [id]: isLiked ? (prev[id] || 0) + 1 : Math.max((prev[id] || 1) - 1, 0) }));
+      setUserLiked((prev) => ({ ...prev, [id]: isLiked }));
+    }
   };
 
   // ---------- SORTED / FILTERED LIST ----------

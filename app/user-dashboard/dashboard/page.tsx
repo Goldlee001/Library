@@ -12,7 +12,8 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 interface MediaItem {
-  id: number;
+  _id?: string;
+  id: number; // fallback index
   title: string;
   src: string;
 }
@@ -48,7 +49,7 @@ export default function Home() {
         ]);
         if (!vRes.ok || !iRes.ok || !pRes.ok) throw new Error("Failed to load media");
         const [vData, iData, pData] = await Promise.all([vRes.json(), iRes.json(), pRes.json()]);
-        const mapItems = (arr: any[]): MediaItem[] => (arr || []).map((m: any, idx: number) => ({ id: idx, title: m.title || "Untitled", src: m.src }));
+        const mapItems = (arr: any[]): MediaItem[] => (arr || []).map((m: any, idx: number) => ({ _id: m._id, id: idx, title: m.title || "Untitled", src: m.src }));
         setVideos(mapItems(vData?.items));
         setImages(mapItems(iData?.items));
         setPdfs(mapItems(pData?.items));
@@ -213,26 +214,47 @@ export default function Home() {
 }
 
 function MediaSection({ title, color, items, description, handleOpen, handleDownload }: MediaSectionProps) {
-  const [interactionCounts, setInteractionCounts] = useState<{ [key: number]: { likes: number } }>({});
-  const [userInteraction, setUserInteraction] = useState<{ [key: number]: number }>({});
+  const [likeCounts, setLikeCounts] = useState<Record<string, number>>({});
+  const [userLiked, setUserLiked] = useState<Record<string, boolean>>({});
 
-  const toggleInteraction = (id: number) => {
-    setUserInteraction((prev) => {
-      const currentAction = prev[id] || 0;
-      const newCounts = { ...interactionCounts[id] || { likes: 0 } };
-      let newAction = 0;
+  useEffect(() => {
+    const ids = (items || [])
+      .map((it: any) => it._id)
+      .filter((v: any): v is string => typeof v === 'string');
+    if (!ids.length) return;
+    (async () => {
+      try {
+        const res = await fetch('/api/likes/bulk', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mediaIds: ids }),
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        setLikeCounts(data.counts || {});
+        setUserLiked(data.liked || {});
+      } catch {}
+    })();
+  }, [items]);
 
-      if (currentAction === 1) {
-        newCounts.likes = Math.max(0, newCounts.likes - 1);
-        newAction = 0;
-      } else {
-        newCounts.likes += 1;
-        newAction = 1;
-      }
-
-      setInteractionCounts((prevCounts) => ({ ...prevCounts, [id]: newCounts }));
-      return { ...prev, [id]: newAction };
-    });
+  const toggleLike = async (key: string) => {
+    const isLiked = !!userLiked[key];
+    setLikeCounts((p) => ({ ...p, [key]: isLiked ? Math.max((p[key] || 1) - 1, 0) : (p[key] || 0) + 1 }));
+    setUserLiked((p) => ({ ...p, [key]: !isLiked }));
+    try {
+      const res = await fetch('/api/likes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mediaId: key, action: 'toggle' }),
+      });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setLikeCounts((p) => ({ ...p, [key]: data.count as number }));
+      setUserLiked((p) => ({ ...p, [key]: !!data.liked }));
+    } catch {
+      setLikeCounts((p) => ({ ...p, [key]: isLiked ? (p[key] || 0) + 1 : Math.max((p[key] || 1) - 1, 0) }));
+      setUserLiked((p) => ({ ...p, [key]: isLiked }));
+    }
   };
 
   const colorClass = color === 'blue' ? 'text-blue-700' : color === 'purple' ? 'text-purple-700' : 'text-indigo-700';
@@ -244,9 +266,9 @@ function MediaSection({ title, color, items, description, handleOpen, handleDown
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 sm:gap-8">
         {items.map((item) => {
-          const counts = interactionCounts[item.id] || { likes: 0 };
-          const interaction = userInteraction[item.id] || 0;
-          const isLiked = interaction === 1;
+          const key = (item as any)._id as string | undefined;
+          const counts = key ? (likeCounts[key] || 0) : 0;
+          const isLiked = key ? !!userLiked[key] : false;
           const itemType = item.src.endsWith(".mp4") ? "video" : item.src.endsWith(".pdf") ? "pdf" : "image";
 
           return (
@@ -278,11 +300,12 @@ function MediaSection({ title, color, items, description, handleOpen, handleDown
 
                 <div className="flex justify-end mb-3">
                   <button
-                    onClick={() => toggleInteraction(item.id)}
-                    className="flex items-center gap-2 text-gray-600 hover:text-red-500 transition"
+                    onClick={() => key && toggleLike(key)}
+                    disabled={!key}
+                    className="flex items-center gap-2 text-gray-600 hover:text-red-500 transition disabled:opacity-50"
                   >
                     <Heart className={`w-5 h-5 ${isLiked ? "fill-red-500 text-red-500" : "text-gray-400"}`} />
-                    <span className="text-sm font-medium">{counts.likes}</span>
+                    <span className="text-sm font-medium">{counts}</span>
                   </button>
                 </div>
 
