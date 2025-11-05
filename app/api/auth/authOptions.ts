@@ -22,8 +22,11 @@ export const authOptions: NextAuthOptions = {
 
         if (!user) throw new Error("No user found with this email");
 
-        if (user.status && ["blocked", "banned"].includes(String(user.status).toLowerCase())) {
-          throw new Error("Your account is suspended.");
+        if (user.status) {
+          const st = String(user.status).toLowerCase();
+          if (["suspended", "blocked", "banned"].includes(st)) {
+            throw new Error("This user is suspended.");
+          }
         }
 
         const isValid = await compare(credentials!.password, user.passwordHash);

@@ -22,6 +22,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No user found with this email" }, { status: 404 });
     }
 
+    // block suspended/blocked/banned users
+    if (user.status) {
+      const st = String(user.status).toLowerCase();
+      if (["suspended", "blocked", "banned"].includes(st)) {
+        return NextResponse.json({ error: "This user is suspended." }, { status: 403 });
+      }
+    }
+
     // compare password with hash
     const isValid = await compare(password, user.passwordHash);
     if (!isValid) {
