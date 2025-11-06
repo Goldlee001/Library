@@ -39,6 +39,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Ensure Cloudinary env is configured at runtime
+    if (
+      !process.env.CLOUDINARY_CLOUD_NAME ||
+      !process.env.CLOUDINARY_API_KEY ||
+      !process.env.CLOUDINARY_API_SECRET
+    ) {
+      return NextResponse.json(
+        { error: "Cloudinary environment variables are not configured on the server" },
+        { status: 500 }
+      );
+    }
+
     // Extract form data
     const form = await req.formData();
     const file = form.get("file") as File | null;
