@@ -63,17 +63,14 @@ export default function UploadPage() {
         const res = await fetch("/api/admin/uploads", { method: "POST", body: fd });
         if (!res.ok) {
           const t = await res.text();
-          console.error("Upload failed:", t);
-          toast.error(`Failed to upload ${item.file.name}`);
+          toast.error(`Failed to upload ${item.file.name}: ${t || res.status}`);
           continue;
         }
         const data = await res.json();
-        console.log("Uploaded:", data);
         toast.success(`Uploaded ${item.file.name}`);
       }
       setFiles([]);
     } catch (err) {
-      console.error(err);
       toast.error("Upload failed");
     }
   };
