@@ -12,7 +12,7 @@ interface FileItem {
 }
 
 export default function UploadPage() {
-  const [sidebarOpen, setSidebarOpen] = useState(false); // ✅ FIX: Define sidebar state
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [files, setFiles] = useState<FileItem[]>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -66,32 +66,27 @@ export default function UploadPage() {
           toast.error(`Failed to upload ${item.file.name}: ${t || res.status}`);
           continue;
         }
-        const data = await res.json();
+        await res.json();
         toast.success(`Uploaded ${item.file.name}`);
       }
       setFiles([]);
-    } catch (err) {
+    } catch {
       toast.error("Upload failed");
     }
   };
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#f3edd7] dark:bg-gray-950 font-inter">
-      {/* Sidebar */}
       <AdminSidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
-      {/* Main Section */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
         <AdminHeader setSidebarOpen={setSidebarOpen} />
 
-        {/* Content */}
         <main className="flex-1 overflow-y-auto overflow-x-hidden p-6 md:p-10">
           <h1 className="text-2xl font-bold mb-6 text-center text-gray-900 dark:text-gray-100">
             Upload your files
           </h1>
 
-          {/* Drag & Drop Box */}
           <div
             onDrop={handleDrop}
             onDragOver={(e) => e.preventDefault()}
@@ -99,9 +94,7 @@ export default function UploadPage() {
             className="border-2 border-dashed border-gray-300 rounded-lg p-10 text-center cursor-pointer hover:border-blue-400 transition-colors bg-white dark:bg-gray-900"
           >
             <div className="text-blue-500 mb-2 text-4xl">⬆️</div>
-            <p className="text-gray-600 dark:text-gray-300 mb-2">
-              Drag & Drop your files or
-            </p>
+            <p className="text-gray-600 dark:text-gray-300 mb-2">Drag & Drop your files or</p>
             <button
               onClick={() => fileInputRef.current?.click()}
               type="button"
@@ -117,19 +110,14 @@ export default function UploadPage() {
               onChange={(e) => e.target.files && handleFiles(e.target.files)}
               className="hidden"
             />
-            <p className="text-gray-400 text-sm mt-2">
-              Files should be jpg, png, or pdf
-            </p>
+            <p className="text-gray-400 text-sm mt-2">Files should be jpg, png, or pdf</p>
           </div>
 
-          {/* File List with Descriptions */}
           {files.length > 0 && (
             <div className="mt-6 space-y-4">
               {files.map((item, idx) => (
                 <div key={idx} className="border p-4 rounded bg-white dark:bg-gray-900">
-                  <p className="font-medium text-gray-900 dark:text-gray-100">
-                    {item.file.name}
-                  </p>
+                  <p className="font-medium text-gray-900 dark:text-gray-100">{item.file.name}</p>
                   <input
                     type="text"
                     placeholder="Enter description"
@@ -142,18 +130,13 @@ export default function UploadPage() {
             </div>
           )}
 
-          {/* Upload Button */}
           {files.length > 0 && (
-            <button
-              onClick={handleUpload}
-              className="mt-6 w-full bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-            >
+            <button onClick={handleUpload} className="mt-6 w-full bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
               Upload
             </button>
           )}
         </main>
 
-        {/* Mobile Bottom Navigation */}
         <AdminNav />
       </div>
     </div>
