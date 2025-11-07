@@ -2,13 +2,18 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FileText, Heart } from "lucide-react";
+import { FileText, Heart, MessageCircle, X } from "lucide-react";
 import UserHeader from "@/components/user-header";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 // ---------- TYPES ----------
-interface PDF { _id?: string; title: string; src: string }
+interface PDF {
+  _id?: string;
+  title: string;
+  src: string;
+  description?: string;
+}
 
 // ---------- MAIN COMPONENT ----------
 export default function DashboardPage() {
@@ -20,28 +25,28 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // ---------- COMMENTS ----------
+  const [comments, setComments] = useState<
+    Record<string, { user: string; text: string }[]>
+  >({});
+  const [newComment, setNewComment] = useState<Record<string, string>>({});
+  const [activeCommentPDF, setActiveCommentPDF] = useState<string | null>(null);
+
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch("/api/media?type=pdf&scope=library", { cache: "no-store" });
+        const res = await fetch("/api/media?type=pdf&scope=library", {
+          cache: "no-store",
+        });
         if (!res.ok) throw new Error("Failed to load PDFs");
         const data = await res.json();
-        const items: PDF[] = (data?.items || []).map((m: any, i: number) => ({ _id: m._id || String(i), title: m.title || "Untitled", src: m.src }));
+        const items: PDF[] = (data?.items || []).map((m: any, i: number) => ({
+          _id: m._id || String(i),
+          title: m.title || "Untitled",
+          src: m.src,
+          description: m.description || "No description available",
+        }));
         setPdfs(items);
-
-        const ids = items.map((it) => it._id).filter(Boolean) as string[];
-        if (ids.length) {
-          const likeRes = await fetch("/api/likes/bulk", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ mediaIds: ids }),
-          });
-          if (likeRes.ok) {
-            const likeData = await likeRes.json();
-            setLikes(likeData.counts || {});
-            setUserLiked(likeData.liked || {});
-          }
-        }
       } catch (e: any) {
         setError(e?.message || "Failed to load");
       } finally {
@@ -51,26 +56,102 @@ export default function DashboardPage() {
     load();
   }, []);
 
+  // bulk likes fetch
+  useEffect(() => {
+    const ids = (pdfs || [])
+      .map((v) => v._id)
+      .filter((id): id is string => typeof id === 'string');
+    if (!ids.length) return;
+    (async () => {
+      try {
+        const res = await fetch('/api/likes/bulk', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mediaIds: ids }),
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        setLikes(data.counts || {});
+        setUserLiked(data.liked || {});
+      } catch {}
+    })();
+  }, [pdfs]);
+
   // ---------- LIKE TOGGLE ----------
   const toggleLike = async (id: string) => {
     const isLiked = !!userLiked[id];
-    setLikes((prev) => ({ ...prev, [id]: isLiked ? Math.max((prev[id] || 1) - 1, 0) : (prev[id] || 0) + 1 }));
+    setLikes((prev) => ({
+      ...prev,
+      [id]: isLiked ? Math.max((prev[id] || 1) - 1, 0) : (prev[id] || 0) + 1,
+    }));
     setUserLiked((prev) => ({ ...prev, [id]: !isLiked }));
     try {
-      const res = await fetch("/api/likes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mediaId: id, action: "toggle" }),
+      const res = await fetch('/api/likes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mediaId: id, action: 'toggle' }),
       });
-      if (!res.ok) throw new Error(await res.text());
+      if (res.status === 401) {
+        toast.error('Please sign in to like');
+        throw new Error('unauthorized');
+      }
+      if (!res.ok) throw new Error();
       const data = await res.json();
-      setLikes((prev) => ({ ...prev, [id]: data.count as number }));
-      setUserLiked((prev) => ({ ...prev, [id]: !!data.liked }));
-    } catch (e) {
-      setLikes((prev) => ({ ...prev, [id]: isLiked ? (prev[id] || 0) + 1 : Math.max((prev[id] || 1) - 1, 0) }));
-      setUserLiked((prev) => ({ ...prev, [id]: isLiked }));
+      setLikes((p) => ({ ...p, [id]: data.count as number }));
+      setUserLiked((p) => ({ ...p, [id]: !!data.liked }));
+    } catch {
+      setLikes((p) => ({ ...p, [id]: isLiked ? (p[id] || 0) + 1 : Math.max((p[id] || 1) - 1, 0) }));
+      setUserLiked((p) => ({ ...p, [id]: isLiked }));
     }
   };
+
+  // ---------- ADD COMMENT ----------
+  const handleAddComment = async (pdfId: string, username: string) => {
+    const text = newComment[pdfId]?.trim();
+    if (!text) return;
+    const optimistic = { user: username, text };
+    setComments((prev) => ({
+      ...prev,
+      [pdfId]: [...(prev[pdfId] || []), optimistic],
+    }));
+    setNewComment((prev) => ({ ...prev, [pdfId]: "" }));
+    try {
+      const res = await fetch('/api/comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mediaId: pdfId, text }),
+      });
+      if (res.status === 401) {
+        toast.error('Please sign in to comment');
+        throw new Error('unauthorized');
+      }
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      const serverItem = { user: username, text };
+      setComments((prev) => ({
+        ...prev,
+        [pdfId]: (prev[pdfId] || []).map((c, i, arr) => (i === arr.length - 1 ? serverItem : c)),
+      }));
+    } catch {
+      setComments((prev) => ({
+        ...prev,
+        [pdfId]: (prev[pdfId] || []).filter((c, i, arr) => !(i === arr.length - 1 && c === optimistic)),
+      }));
+    }
+  };
+
+  useEffect(() => {
+    if (!activeCommentPDF) return;
+    (async () => {
+      try {
+        const res = await fetch(`/api/comments?mediaId=${activeCommentPDF}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const mapped = (data?.items || []).map((it: any) => ({ user: it.userName || 'User', text: it.text as string }));
+        setComments((prev) => ({ ...prev, [activeCommentPDF]: mapped }));
+      } catch {}
+    })();
+  }, [activeCommentPDF]);
 
   // ---------- SORTED / FILTERED LIST ----------
   const sortedPDFs = useMemo(() => {
@@ -149,10 +230,16 @@ export default function DashboardPage() {
         />
       </div>
 
-      {/* ===================== PDF SECTION ===================== */}
       <SectionHeader title="PDF Documents" />
 
-      {!hasMatches ? (
+      {loading && (
+        <div className="text-center text-gray-600 mt-10">Loading...</div>
+      )}
+      {!loading && error && (
+        <div className="text-center text-red-600 mt-10">{error}</div>
+      )}
+
+      {!loading && !error && !hasMatches ? (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -188,11 +275,15 @@ export default function DashboardPage() {
                     <p className="p-2 text-sm font-medium text-center">
                       {pdf.title}
                     </p>
+                    <p className="px-2 text-xs text-gray-500 text-center">
+                      {pdf.description}
+                    </p>
 
-                    <div className="flex justify-center items-center pb-2">
+                    {/* Likes + Comments */}
+                    <div className="flex justify-center gap-4 items-center py-2">
                       <button
                         onClick={() => toggleLike(key)}
-                        className="flex items-center gap-2 text-sm font-medium"
+                        className="flex items-center gap-1 text-sm"
                       >
                         <Heart
                           className={`w-5 h-5 ${
@@ -201,10 +292,22 @@ export default function DashboardPage() {
                               : "text-gray-400"
                           }`}
                         />
-                        <span className="text-gray-700">{likeCount}</span>
+                        <span>{likeCount}</span>
+                      </button>
+
+                      <button
+                        onClick={() => setActiveCommentPDF(key)}
+                        className="flex items-center gap-1 text-sm text-gray-600 hover:text-blue-600 transition"
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                        <span>
+                          {comments[key]?.length || 0} Comment
+                          {(comments[key]?.length || 0) !== 1 && "s"}
+                        </span>
                       </button>
                     </div>
 
+                    {/* View + Download */}
                     <div className="flex justify-center gap-3 pb-3">
                       <button
                         onClick={() => window.open(pdf.src, "_blank")}
@@ -232,6 +335,73 @@ export default function DashboardPage() {
           />
         </>
       )}
+
+      {/* ---------- Comment Popup ---------- */}
+      <AnimatePresence>
+        {activeCommentPDF && (
+          <motion.div
+            key="comments"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.8 }}
+              className="bg-white rounded-lg w-full max-w-md p-4 shadow-lg relative"
+            >
+              <button
+                onClick={() => setActiveCommentPDF(null)}
+                className="absolute top-2 right-2 text-gray-500 hover:text-black"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <h3 className="text-lg font-semibold mb-2 text-center">
+                Comments
+              </h3>
+
+              <div className="max-h-64 overflow-y-auto border rounded-md p-2 mb-3 text-sm">
+                {(comments[activeCommentPDF] || []).length === 0 ? (
+                  <p className="text-gray-400 text-center">
+                    No comments yet. Be the first!
+                  </p>
+                ) : (
+                  comments[activeCommentPDF].map((c, i) => (
+                    <p key={i} className="mb-1">
+                      <span className="font-semibold">{c.user}: </span>
+                      {c.text}
+                    </p>
+                  ))
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Write a comment..."
+                  value={newComment[activeCommentPDF] || ""}
+                  onChange={(e) =>
+                    setNewComment((prev) => ({
+                      ...prev,
+                      [activeCommentPDF]: e.target.value,
+                    }))
+                  }
+                  className="flex-1 border rounded-md px-2 py-1 text-sm focus:outline-none"
+                />
+                <button
+                  onClick={() => handleAddComment(activeCommentPDF, "User1")}
+                  className="bg-blue-500 text-white px-3 py-1 rounded-md text-sm"
+                >
+                  Post
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

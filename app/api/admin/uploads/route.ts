@@ -55,6 +55,7 @@ export async function POST(req: Request) {
     const form = await req.formData();
     const file = form.get("file") as File | null;
     const title = (form.get("title") as string | null) ?? "Untitled";
+    const description = (form.get("description") as string | null) ?? null;
     const type = (form.get("type") as string | null)?.toLowerCase();
     const scope = ((form.get("scope") as string | null) ?? "library").toLowerCase();
 
@@ -89,6 +90,7 @@ export async function POST(req: Request) {
       type,
       src: uploadResult?.secure_url,
       scope,
+      description: description && description.trim() ? description.trim() : null,
       createdAt: new Date(),
       uploadedBy: user?.id ?? null,
     };

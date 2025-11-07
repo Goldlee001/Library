@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +25,12 @@ export default function RegisterPage() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Prefetch routes to make navigation feel instant
+  useEffect(() => {
+    router.prefetch("/user-dashboard/dashboard");
+    router.prefetch("/auth/login");
+  }, [router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -204,9 +211,9 @@ export default function RegisterPage() {
 
             <p className="text-center text-sm mt-4 text-gray-700">
               Already have an account?{" "}
-              <a href="/auth/login" className="text-blue-700 hover:underline">
+              <Link href="/auth/login" className="text-blue-700 hover:underline">
                 Sign in
-              </a>
+              </Link>
             </p>
           </CardContent>
         </Card>

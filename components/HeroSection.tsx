@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import Link from "next/link";
-import { Search, ChevronLeft, ChevronRight } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const SLIDE_DATA = [
   {
@@ -42,38 +41,39 @@ const SLIDE_DATA = [
   },
 ];
 
-const TABS = ["All Content", "Images"] as const;
-type Tab = (typeof TABS)[number];
-
 const HeroSection: React.FC = () => {
   const totalImages = SLIDE_DATA.length;
-  const [activeTab, setActiveTab] = useState<Tab>("All Content");
   const [currentIndex, setCurrentIndex] = useState(0);
 
+  // ▶️ Handle next and previous navigation
   const handleNext = () =>
     setCurrentIndex((prev) => (prev === totalImages - 1 ? 0 : prev + 1));
   const handlePrev = () =>
     setCurrentIndex((prev) => (prev === 0 ? totalImages - 1 : prev - 1));
 
+  // ⏱️ Auto slide every 5 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev === totalImages - 1 ? 0 : prev + 1));
+    }, 5000); // Change slide every 5 seconds
+
+    return () => clearInterval(interval); // Cleanup on unmount
+  }, [totalImages]);
+
   const currentSlide = SLIDE_DATA[currentIndex];
-  const imageNumber = currentIndex + 1;
   const leftShiftValue = `-${currentIndex * 100}%`;
 
   return (
     <section className="bg-white pb-0 relative overflow-hidden mt-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 w-full z-10 relative">
-        {/* 🌍 Title */}
         <h1 className="text-3xl sm:text-4xl md:text-6xl font-serif font-light leading-snug max-w-4xl text-black pt-8 sm:pt-10">
           Explore the world’s knowledge, cultures, and ideas
         </h1>
-
       </div>
 
       {/* 🖼️ Image Carousel */}
       <div className="relative w-full overflow-hidden mt-6">
-        {/* Outer Frame */}
         <div className="relative h-[220px] sm:h-[300px] md:h-[400px] bg-gray-200">
-          {/* Inner Slides Container */}
           <div
             className="absolute top-0 left-0 flex h-full transition-all duration-700 ease-in-out"
             style={{
@@ -104,7 +104,7 @@ const HeroSection: React.FC = () => {
           </p>
           <div className="flex items-center justify-between sm:justify-end space-x-3">
             <span className="font-semibold">
-              Image {imageNumber} of {totalImages}
+              Image {currentIndex + 1} of {totalImages}
             </span>
             <div className="flex space-x-1">
               <button

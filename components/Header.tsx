@@ -3,13 +3,22 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, Menu, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 const BRAND_COLOR = "#800000"; // Maroon color
 
 export const Header = () => {
   const [open, setOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const router = useRouter();
+
+  // Prefetch common routes to make page opens feel instant
+  useEffect(() => {
+    router.prefetch("/auth/login");
+    router.prefetch("/auth/register");
+    router.prefetch("/user-dashboard/dashboard");
+  }, [router]);
 
   return (
     <header className="fixed top-0 left-0 w-full py-4 px-6 md:px-8 border-b border-gray-100 bg-[#f3edd7] z-50">

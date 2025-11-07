@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
@@ -15,6 +15,12 @@ export default function LoginCard() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Prefetch target routes to make navigation feel instant
+  useEffect(() => {
+    router.prefetch("/user-dashboard/dashboard");
+    router.prefetch("/auth/register");
+  }, [router]);
 
   function validate() {
     if (!email) return "Please enter your email.";

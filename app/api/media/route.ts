@@ -26,6 +26,7 @@ export async function GET(req: NextRequest) {
       type: d.type,
       src: d.src,
       scope: d.scope,
+      description: d.description ?? null,
       createdAt: d.createdAt,
       uploadedBy: d.uploadedBy ?? null,
     }));

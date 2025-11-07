@@ -127,14 +127,14 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="md:w-1/2 w-full flex justify-center items-center bg-gray-50 p-6 md:p-10">
+          <div className="md:w-1/2 w-full flex justify-center items-center md:p-10">
             <img
-              src="/images/book.jpg"
+              src="/images/book.jpeg"
               alt="Book Cover"
-              width={300}
+              width={350}
               height={400}
               loading="lazy"
-              className="object-contain shadow-xl border p-2 bg-white rounded-lg"
+              className="object-contain bg-white rounded-none lg:rounded-lg"
               onError={(e) => {
                 const t = e.currentTarget as HTMLImageElement;
                 if (t && t.src !== EMPTY_PIXEL) t.src = EMPTY_PIXEL;
